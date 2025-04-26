@@ -1,0 +1,31 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:DrawingAppCG.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+		x:CompileBindings="True"
+        x:Class="DrawingAppCG.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="DrawingAppCG">
+
+	<Design.DataContext>
+		<!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+		<vm:MainWindowViewModel/>
+	</Design.DataContext>
+
+	<DockPanel>
+		<StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="5">
+			<Button Content="Line" Click="SelectLineTool" />
+			<Button Content="Circle" Click="SelectCircleTool" />
+			<Button Content="Polygon" Click="SelectPolygonTool" />
+			<Button Content="Clear" Click="ClearShapes"/>
+			<TextBlock Text="{Binding SelectedThickness,StringFormat='Pen Thickness: {0} px'}" Width="140" Margin="10,0,5,0" VerticalAlignment="Center"/>
+			<Slider Width="100" Minimum="1" Maximum="15" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding SelectedThickness, Mode=TwoWay}" />
+		</StackPanel>
+		<Image Name="ImageCanvas" Source="{Binding Bitmap,UpdateSourceTrigger=PropertyChanged}" Stretch="None" PointerPressed="Image_PointerPressed" />
+	</DockPanel>
+
+</Window>
