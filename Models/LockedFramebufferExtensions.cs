@@ -35,10 +35,11 @@ namespace DrawingAppCG.Models
             pixel[0] = (byte)(color.B);
             pixel[1] = (byte)(color.G);
             pixel[2] = (byte)(color.R);
+            pixel[3] = (byte)(color.A);
         }
         public static void SetPixel(this ILockedFramebuffer framebuffer, int x, int y, Color color, int thickness, bool isMoreHorizontal)
         {
-            if(thickness == 1)
+            if (thickness == 1)
             {
                 SetPixel(framebuffer, x, y, color);
                 return;
@@ -61,6 +62,47 @@ namespace DrawingAppCG.Models
                 {
                     framebuffer.SetPixel(x + dx, y, color);
                 }
+            }
+        }
+        private static float Coverage(float w, float d, float r)
+        {
+            if (w >= r)
+            {
+                if (w <= d)
+                    return cov(d - w, r);
+                else if (0 <= d && d <= w)
+                    return 1 - cov(w - d, r);
+            }
+            else
+            {
+                if (0 <= d && d <= w)
+                    return 1 - cov(w - d, r) - cov(w + d, r);
+                else if (w <= d && d <= r - w)
+                    return cov(d - w, r) - cov(d + w, r);
+                else if (r - w <= d && d <= r + w)
+                    return cov(d - w, r);
+            }
+            return float.NaN;
+
+            float cov(float d, float r) => d <= r ? (float)(1 / Math.PI * Math.Acos(d / r) - (d / (Math.PI * r * r)) * Math.Sqrt(r * r - d * d)) : 0;
+        }
+        public static float IntensifyPixel(this ILockedFramebuffer framebuffer, int x, int y, Color color, float thickness, float distance, Color? background = null)
+        {
+            background ??= Colors.White;
+
+            float r = 0.5f;
+            float cov = Coverage(thickness, distance, r);
+            if (cov > 0)
+                framebuffer.SetPixel(x, y, lerp(background.Value, color, cov));
+            //System.Diagnostics.Debug.WriteLine($"x: {x}, y: {y}, color: {lerp(background.Value, color, cov)}, thickness: {thickness}, distance: {distance}, cov: {cov}");
+            return cov;
+
+            Color lerp(Color background, Color line, float t)
+            {
+                byte R = (byte)(background.R + (line.R - background.R) * t);
+                byte G = (byte)(background.G + (line.G - background.G) * t);
+                byte B = (byte)(background.B + (line.B - background.B) * t);
+                return Color.FromRgb(R, G, B);
             }
         }
     }

@@ -1,5 +1,6 @@
 ﻿using Avalonia.Media.Imaging;
 using System;
+using System.Collections.Generic;
 
 namespace DrawingAppCG.Models
 {
@@ -55,5 +56,28 @@ namespace DrawingAppCG.Models
                 DrawOctants(bitmap, x, y);
             }
         }
+        public override bool ContainsPoint(int x, int y)
+        {
+            double distance = Math.Sqrt(Math.Pow(x - CenterX, 2) + Math.Pow(y - CenterY, 2));
+            return Math.Abs(distance - Radius) <= 5;
+        }
+        public override void Move(int deltaX, int deltaY)
+        {
+            CenterX += deltaX;
+            CenterY += deltaY;
+        }
+        public override void MovePoint(int pointIndex, int newX, int newY)
+        {
+            if (pointIndex == 0) // Center point
+            {
+                CenterX = newX;
+                CenterY = newY;
+            }
+            else // Radius handle
+            {
+                Radius = (int)Math.Sqrt(Math.Pow(newX - CenterX, 2) + Math.Pow(newY - CenterY, 2));
+            }
+        }
+        public override List<(int x, int y)> GetControlPoints() => [(CenterX, CenterY), (CenterX + Radius, CenterY)];
     }
 }

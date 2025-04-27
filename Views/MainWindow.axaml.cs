@@ -1,23 +1,32 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using DrawingAppCG.Models;
 using DrawingAppCG.ViewModels;
 using System;
+using System.Linq;
 
 namespace DrawingAppCG.Views;
 
 public partial class MainWindow : Window
 {
     private (int x, int y)? startPoint = null;
-
+    private Point? _lastPointerPosition = null;
+    private bool _isDragging = false;
+    private ScaleTransform? _scaleTransform;
+    private TranslateTransform? _translateTransform;
     public MainWindow()
     {
         InitializeComponent();
+        var transformGroup = this.Resources["ImageTransform"] as TransformGroup;
+        _scaleTransform = transformGroup?.Children.OfType<ScaleTransform>().FirstOrDefault();
+        _translateTransform = transformGroup?.Children.OfType<TranslateTransform>().FirstOrDefault();
     }
     private void SelectLineTool(object? sender, RoutedEventArgs e)
     {
@@ -60,15 +69,162 @@ public partial class MainWindow : Window
             ImageCanvas.InvalidateVisual();
         }
     }
+    private void Image_PointerWheelChanged(object? sender, PointerWheelEventArgs e)
+    {
+        if (e.KeyModifiers != KeyModifiers.Control)
+        {
+            e.Handled = true;
+            return;
+        }
 
+        if (_scaleTransform is null)
+            return;
+
+        const double zoomFactor = 1.1;
+
+        if (e.Delta.Y > 0)
+        {
+            _scaleTransform.ScaleX *= zoomFactor;
+            _scaleTransform.ScaleY *= zoomFactor;
+        }
+        else if (e.Delta.Y < 0)
+        {
+            _scaleTransform.ScaleX /= zoomFactor;
+            _scaleTransform.ScaleY /= zoomFactor;
+        }
+    }
+    private void Image_PointerReleased(object? sender, PointerReleasedEventArgs e)
+    {
+        if(DataContext is not MainWindowViewModel vm)
+            return;
+
+        if(vm.SelectedTool == Tool.Move)
+        {
+            vm.EndDrag();
+            ImageOverlay.InvalidateVisual();
+            ImageCanvas.InvalidateVisual();
+        }
+
+        _isDragging = false;
+        _lastPointerPosition = null;
+    }
+    private void Image_PointerMoved(object? sender, PointerEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        if (e.KeyModifiers == KeyModifiers.Control)
+        {
+            if (_isDragging && _lastPointerPosition != null && _translateTransform != null)
+            {
+                var currentPosition = e.GetPosition((Visual?)sender!);
+                var delta = currentPosition - _lastPointerPosition.Value;
+                _lastPointerPosition = currentPosition;
+
+                _translateTransform.X += delta.X;
+                _translateTransform.Y += delta.Y;
+                ImageOverlay.InvalidateVisual();
+                ImageCanvas.InvalidateVisual();
+            }
+            e.Handled = true;
+            return;
+        }
+
+        var point = e.GetPosition((Visual?)sender!);
+        int x = (int)point.X;
+        int y = (int)point.Y;
+
+        if (vm.SelectedTool == Tool.Move)
+        {
+            vm.HandleDrag(x, y);
+            e.Handled = true;
+            return;
+        }
+
+        vm.ClearOverlay();
+
+        if (startPoint != null)
+        {
+            switch (vm.SelectedTool)
+            {
+                case Tool.Line:
+                    var line = new Line
+                    {
+                        IsAntialiased = vm.IsAntialiased,
+                        Thickness = vm.SelectedThickness,
+                        Start = startPoint.Value,
+                        End = (x, y),
+                    };
+                    line.Draw(vm.Overlay);
+                    break;
+                case Tool.Circle:
+                    var circle = new Circle
+                    {
+                        Thickness = vm.SelectedThickness,
+                        CenterX = startPoint.Value.x,
+                        CenterY = startPoint.Value.y,
+                        Radius = (int)Math.Sqrt((x - startPoint.Value.x) * (x - startPoint.Value.x) + (y - startPoint.Value.y) * (y - startPoint.Value.y)),
+                    };
+                    circle.Draw(vm.Overlay);
+                    break;
+                case Tool.Polygon:
+                    var FirstPoint = new Circle()
+                    {
+                        CenterX = startPoint.Value.x,
+                        CenterY = startPoint.Value.y,
+                        Radius = 10,
+                        Color = Colors.Red,
+                    };
+                    FirstPoint.Draw(vm.Overlay);
+                    if (vm.TempPolygon != null)
+                    {
+                        var poly = new Polygon
+                        {
+                            IsAntialiased = vm.IsAntialiased,
+                            Thickness = vm.SelectedThickness,
+                        };
+                        poly.Points.AddRange(vm.TempPolygon.Points);
+                        poly.Points.Add((x, y));
+                        poly.Draw(vm.Overlay);
+                    }
+                    break;
+            }
+        }
+        ImageOverlay.InvalidateVisual();
+    }
     private void Image_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel vm)
             return;
 
+        if (e.KeyModifiers == KeyModifiers.Control)
+        {
+            _isDragging = true;
+            _lastPointerPosition = e.GetPosition((Visual?)sender!);
+
+            e.Handled = true;
+            return;
+        }
+
         var point = e.GetPosition((Visual?)sender!);
         int x = (int)point.X;
         int y = (int)point.Y;
+
+        if (vm.SelectedTool == Tool.Move)
+        {
+            vm.ClearOverlay();
+            if (e.GetCurrentPoint((Visual?)sender!).Properties.IsRightButtonPressed)
+            {
+                vm.SelectShapeAt(x, y);
+            }
+            else if (vm.SelectedShape != null)
+            {
+                vm.StartDrag(x, y);
+            }
+            ImageOverlay.InvalidateVisual();
+            e.Handled = true;
+            return;
+        }
 
         if (startPoint == null)
         {
@@ -77,22 +233,14 @@ public partial class MainWindow : Window
             {
                 vm.TempPolygon = new Polygon
                 {
+                    IsAntialiased = vm.IsAntialiased,
                     Thickness = vm.SelectedThickness,
                 };
                 vm.TempPolygon.Points.Add((x, y));
-                var hitPoint = new Circle()
-                {
-                    CenterX = x,
-                    CenterY = y,
-                    Radius = 10,
-                    Color = Colors.Red,
-                };
-                hitPoint.Draw(vm.Bitmap);
             }
         }
         else
         {
-            // Second click — create shape
             var (x1, y1) = startPoint.Value;
 
             switch (vm.SelectedTool)
@@ -100,13 +248,10 @@ public partial class MainWindow : Window
                 case Tool.Line:
                     vm.AddShape(new Line
                     {
+                        IsAntialiased = vm.IsAntialiased,
                         Thickness = vm.SelectedThickness,
                         Start = (x1, y1),
                         End = (x, y),
-                        //X1 = x1,
-                        //Y1 = y1,
-                        //X2 = x,
-                        //Y2 = y,
                     });
                     startPoint = null;
                     break;
@@ -131,7 +276,6 @@ public partial class MainWindow : Window
                         vm.AddShape(vm.TempPolygon);
                         startPoint = null;
                         vm.TempPolygon = null;
-                        vm.RedrawAll();
                     }
                     else
                     {
@@ -145,5 +289,17 @@ public partial class MainWindow : Window
             }
         }
         ImageCanvas.InvalidateVisual();
+    }
+    private void Image_KeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Delete)
+        {
+            if (DataContext is MainWindowViewModel vm)
+            {
+                vm.DeleteSelectedShape();
+                vm.RedrawAll();
+                ImageCanvas.InvalidateVisual();
+            }
+        }
     }
 }

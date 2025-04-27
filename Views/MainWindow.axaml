@@ -16,16 +16,41 @@
 		<vm:MainWindowViewModel/>
 	</Design.DataContext>
 
+	<Window.Resources>
+		<TransformGroup x:Key="ImageTransform">
+			<ScaleTransform/>
+			<TranslateTransform/>
+		</TransformGroup>
+	</Window.Resources>
+
 	<DockPanel>
-		<StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="5">
-			<Button Content="Line" Click="SelectLineTool" />
-			<Button Content="Circle" Click="SelectCircleTool" />
-			<Button Content="Polygon" Click="SelectPolygonTool" />
-			<Button Content="Clear" Click="ClearShapes"/>
-			<TextBlock Text="{Binding SelectedThickness,StringFormat='Pen Thickness: {0} px'}" Width="140" Margin="10,0,5,0" VerticalAlignment="Center"/>
+		<Menu DockPanel.Dock="Top">
+			<MenuItem Header="File">
+				<MenuItem Header="Save" />
+				<MenuItem Header="Load" />
+			</MenuItem>
+			<MenuItem Header="{Binding SelectedTool,UpdateSourceTrigger=PropertyChanged, StringFormat='Tool: {0}'}">
+				<MenuItem Header="Line" Click="SelectLineTool" />
+				<MenuItem Header="Circle" Click="SelectCircleTool" />
+				<MenuItem Header="Polygon" Click="SelectPolygonTool" />
+				<MenuItem Header="Move" Click="SelectMoveTool" />
+			</MenuItem>
+			<MenuItem Header="Render Options">
+				<MenuItem Header="Antialiased" IsChecked="{Binding IsAntialiased,Mode=TwoWay}" ToggleType="CheckBox"/>
+			</MenuItem>
+			<MenuItem Header="Clear Shapes" Click="ClearShapes"/>
+		</Menu>
+		<StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
+			<TextBlock Text="{Binding SelectedThickness,StringFormat='Pen Thickness: {0} px'}" Width="140" Margin="12,0,5,0" VerticalAlignment="Center"/>
 			<Slider Width="100" Minimum="1" Maximum="15" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding SelectedThickness, Mode=TwoWay}" />
 		</StackPanel>
-		<Image Name="ImageCanvas" Source="{Binding Bitmap,UpdateSourceTrigger=PropertyChanged}" Stretch="None" PointerPressed="Image_PointerPressed" />
+		<Panel>
+			<Border ClipToBounds="True">
+				<Canvas>
+					<Image Name="ImageCanvas" RenderTransform="{StaticResource ImageTransform}" RenderOptions.BitmapInterpolationMode="None" Source="{Binding Bitmap,UpdateSourceTrigger=PropertyChanged}" Stretch="None" PointerPressed="Image_PointerPressed" PointerMoved="Image_PointerMoved" PointerWheelChanged="Image_PointerWheelChanged" PointerReleased="Image_PointerReleased" KeyDown="Image_KeyDown"/>
+					<Image Name="ImageOverlay" RenderTransform="{StaticResource ImageTransform}" RenderOptions.BitmapInterpolationMode="None" Source="{Binding Overlay}" Stretch="None" IsHitTestVisible="False"/>
+				</Canvas>
+			</Border>
+		</Panel>
 	</DockPanel>
-
 </Window>
