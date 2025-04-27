@@ -66,6 +66,9 @@ namespace DrawingAppCG.Models
         }
         private static float Coverage(float w, float d, float r)
         {
+            if (float.IsNaN(d) || float.IsInfinity(d))
+                return 0;
+
             if (w >= r)
             {
                 if (w <= d)
@@ -82,9 +85,9 @@ namespace DrawingAppCG.Models
                 else if (r - w <= d && d <= r + w)
                     return cov(d - w, r);
             }
-            return float.NaN;
+            return 1;
 
-            float cov(float d, float r) => d <= r ? (float)(1 / Math.PI * Math.Acos(d / r) - (d / (Math.PI * r * r)) * Math.Sqrt(r * r - d * d)) : 0;
+            static float cov(float d, float r) => d <= r ? (float)((1 / Math.PI) * Math.Acos(d / r) - (d / (Math.PI * r * r)) * Math.Sqrt(r * r - d * d)) : 0;
         }
         public static float IntensifyPixel(this ILockedFramebuffer framebuffer, int x, int y, Color color, float thickness, float distance, Color? background = null)
         {

@@ -3,11 +3,18 @@ using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.Input;
 using DrawingAppCG.Models;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Xml.Schema;
 
@@ -17,9 +24,9 @@ namespace DrawingAppCG.ViewModels
     {
         public WriteableBitmap Bitmap { get; }
         public WriteableBitmap Overlay { get; }
-        private int _width = 800;
-        private int _height = 600;
-        public List<ShapeBase> Shapes { get; set; } = new();
+        private readonly int _width = 800;
+        private readonly int _height = 600;
+        public List<ShapeBase> Shapes { get; set; } = [];
         private Tool _selectedTool = Tool.None;
         public Tool SelectedTool
         {
@@ -38,7 +45,7 @@ namespace DrawingAppCG.ViewModels
             set
             {
                 _selectedThickness = value;
-                if(SelectedShape != null)
+                if (SelectedShape != null)
                 {
                     SelectedShape.Thickness = value;
                     SelectedShape.Draw(Bitmap);
@@ -77,15 +84,16 @@ namespace DrawingAppCG.ViewModels
             }
         }
         private ShapeBase? _selectedShape;
-        public ShapeBase? SelectedShape 
-        { get => _selectedShape;
+        public ShapeBase? SelectedShape
+        {
+            get => _selectedShape;
             set
             {
                 _selectedShape = value;
                 OnPropertyChanged(nameof(SelectedShape));
             }
         }
-        public int? SelectedControlPointIndex { get; set; }
+        public HashSet<int> SelectedPointIndices { get; } = [];
         private (int x, int y)? _dragStartPoint;
         public MainWindowViewModel()
         {
@@ -132,16 +140,14 @@ namespace DrawingAppCG.ViewModels
             Shapes.Clear();
             RedrawAll();
         }
-        public void SelectShapeAt(int x, int y)
+        public void SelectShapeAt(int x, int y, bool isShiftDown)
         {
-            if (SelectedShape != null)
+            if (!isShiftDown)
             {
-                SelectedShape.IsSelected = false;
-                ClearOverlay();
+                if (SelectedShape != null) SelectedShape.IsSelected = false;
+                SelectedShape = null;
+                SelectedPointIndices.Clear();
             }
-
-            SelectedShape = null;
-            SelectedControlPointIndex = null;
 
             foreach (var shape in Shapes.AsEnumerable().Reverse())
             {
@@ -153,19 +159,35 @@ namespace DrawingAppCG.ViewModels
                     var controlPoints = shape.GetControlPoints();
                     for (int i = 0; i < controlPoints.Count; i++)
                     {
-                        var pt = controlPoints[i];
-                        if (Math.Abs(pt.x - x) < 5 && Math.Abs(pt.y - y) < 5)
+                        var (ptX, ptY) = controlPoints[i];
+                        if (Math.Abs(ptX - x) < 5 && Math.Abs(ptY - y) < 5)
                         {
-                            SelectedControlPointIndex = i;
+                            if (isShiftDown && shape is Polygon)
+                            {
+                                if (SelectedPointIndices.Contains(i))
+                                    SelectedPointIndices.Remove(i);
+                                else
+                                    SelectedPointIndices.Add(i);
+                            }
+                            else
+                            {
+                                SelectedPointIndices.Clear();
+                                SelectedPointIndices.Add(i);
+                            }
                             break;
                         }
                     }
+
                     UpdateHitpoints();
                     RedrawAll();
                     return;
                 }
             }
-            RedrawAll();
+
+            if (!isShiftDown)
+            {
+                RedrawAll();
+            }
         }
         public void StartDrag(int x, int y)
         {
@@ -176,27 +198,33 @@ namespace DrawingAppCG.ViewModels
             if (_dragStartPoint == null || SelectedShape == null) return;
 
             var (startX, startY) = _dragStartPoint.Value;
+            int deltaX = x - startX;
+            int deltaY = y - startY;
 
-            if (SelectedControlPointIndex.HasValue)
+            var controlPoints = SelectedShape.GetControlPoints();
+            if (SelectedPointIndices.Count > 0 && SelectedPointIndices.Count < controlPoints.Count)
             {
-                SelectedShape.MovePoint(SelectedControlPointIndex.Value, x, y);
+                foreach (var index in SelectedPointIndices)
+                {
+                    SelectedShape.MovePoint(index,
+                        controlPoints[index].x + deltaX,
+                        controlPoints[index].y + deltaY);
+                }
             }
             else
             {
-                SelectedShape.Move(x - startX, y - startY);
+                // Normal movement for other shapes
+                SelectedShape.Move(deltaX, deltaY);
             }
 
             _dragStartPoint = (x, y);
-            RedrawAll();
             UpdateHitpoints();
+            RedrawAll();
         }
         public void UpdateHitpoints()
         {
             ClearOverlay();
-            if (SelectedShape != null)
-            {
-                SelectedShape.DrawHitpoints(Overlay, SelectedControlPointIndex);
-            }
+            SelectedShape?.DrawHitpoints(Overlay, SelectedPointIndices);
         }
         public void EndDrag()
         {
@@ -214,5 +242,53 @@ namespace DrawingAppCG.ViewModels
                 RedrawAll();
             }
         }
+        public async Task SaveShapes(Window window)
+        {
+            var file = await window.StorageProvider.SaveFilePickerAsync(
+                new FilePickerSaveOptions
+                {
+                    Title = "Save Drawing",
+                    FileTypeChoices = [new FilePickerFileType("Drawing") { Patterns = ["*.draw"] }]
+                });
+
+            if (file is null) return;
+
+            await using var stream = await file.OpenWriteAsync();
+            await JsonSerializer.SerializeAsync(stream, Shapes, SerializerOptions);
+        }
+        public async Task LoadShapes(Window window)
+        {
+            var files = await window.StorageProvider.OpenFilePickerAsync(
+                new FilePickerOpenOptions
+                {
+                    Title = "Open Drawing",
+                    FileTypeFilter = [new FilePickerFileType("Drawing") { Patterns = ["*.draw"] }]
+                });
+
+            if (files.Count == 0) return;
+
+            await using var stream = await files[0].OpenReadAsync();
+            var loadedShapes = await JsonSerializer.DeserializeAsync<List<ShapeBase>>(
+                stream, SerializerOptions);
+
+            if (loadedShapes is null) return;
+
+            ClearShapes();
+            foreach (var shape in loadedShapes)
+            {
+                AddShape(shape);
+            }
+        }
+        private static readonly JsonSerializerOptions SerializerOptions = new()
+        {
+            WriteIndented = true,
+            IncludeFields = true,
+            Converters =
+            {
+                new ColorConverter(),
+                new PointConverter(),
+            },
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        };
     }
 }

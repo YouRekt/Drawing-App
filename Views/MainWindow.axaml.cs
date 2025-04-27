@@ -177,8 +177,7 @@ public partial class MainWindow : Window
                     {
                         Thickness = vm.SelectedThickness,
                         Color = vm.SelectedColor,
-                        CenterX = startPoint.Value.x,
-                        CenterY = startPoint.Value.y,
+                        Center = (startPoint.Value.x, startPoint.Value.y),
                         Radius = (int)Math.Sqrt((x - startPoint.Value.x) * (x - startPoint.Value.x) + (y - startPoint.Value.y) * (y - startPoint.Value.y)),
                     };
                     circle.Draw(vm.Overlay);
@@ -186,8 +185,7 @@ public partial class MainWindow : Window
                 case Tool.Polygon:
                     var FirstPoint = new Circle()
                     {
-                        CenterX = startPoint.Value.x,
-                        CenterY = startPoint.Value.y,
+                        Center = (startPoint.Value.x, startPoint.Value.y),
                         Radius = 10,
                         Color = Colors.Red,
                     };
@@ -232,7 +230,7 @@ public partial class MainWindow : Window
             vm.ClearOverlay();
             if (e.GetCurrentPoint((Visual?)sender!).Properties.IsRightButtonPressed)
             {
-                vm.SelectShapeAt(x, y);
+                vm.SelectShapeAt(x, y, e.KeyModifiers == KeyModifiers.Shift);
                 if (vm.SelectedShape != null)
                 {
                     vm.UpdateHitpoints();
@@ -285,8 +283,7 @@ public partial class MainWindow : Window
                     {
                         Color = vm.SelectedColor,
                         Thickness = vm.SelectedThickness,
-                        CenterX = x1,
-                        CenterY = y1,
+                        Center = (x1, y1),
                         Radius = radius,
                     });
                     startPoint = null;
@@ -313,5 +310,19 @@ public partial class MainWindow : Window
             }
         }
         ImageCanvas.InvalidateVisual();
+    }
+    private async void Save_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            await vm.SaveShapes(this);
+        }
+    }
+    private async void Load_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            await vm.LoadShapes(this);
+        }
     }
 }

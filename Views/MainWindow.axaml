@@ -26,8 +26,8 @@
 	<DockPanel>
 		<Menu DockPanel.Dock="Top">
 			<MenuItem Header="File">
-				<MenuItem Header="Save" />
-				<MenuItem Header="Load" />
+				<MenuItem Header="Save" Click="Save_Click"/>
+				<MenuItem Header="Load" Click="Load_Click"/>
 			</MenuItem>
 			<MenuItem Header="{Binding SelectedTool,UpdateSourceTrigger=PropertyChanged, StringFormat='Tool: {0}'}">
 				<MenuItem Header="Line" Click="SelectLineTool" />

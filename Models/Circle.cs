@@ -1,13 +1,14 @@
 ﻿using Avalonia.Media.Imaging;
 using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace DrawingAppCG.Models
 {
     public class Circle : ShapeBase
     {
-        public int CenterX { get; set; }
-        public int CenterY { get; set; }
+        public (int x, int y) Center { get; set; }
         public int Radius { get; set; }
         private void DrawOctants(WriteableBitmap bitmap, int x, int y)
         {
@@ -15,18 +16,18 @@ namespace DrawingAppCG.Models
             {
                 unsafe
                 {
-                    fb.SetPixel(CenterX + x, CenterY + y, Color, Thickness,isMoreHorizontal(CenterX + x, CenterY + y));
-                    fb.SetPixel(CenterX - x, CenterY + y, Color, Thickness,isMoreHorizontal(CenterX - x, CenterY + y));
-                    fb.SetPixel(CenterX + x, CenterY - y, Color, Thickness, isMoreHorizontal(CenterX + x, CenterY - y));
-                    fb.SetPixel(CenterX - x, CenterY - y, Color, Thickness, isMoreHorizontal(CenterX - x, CenterY - y));
-                    fb.SetPixel(CenterX + y, CenterY + x, Color, Thickness, isMoreHorizontal(CenterX + y, CenterY + x));
-                    fb.SetPixel(CenterX - y, CenterY + x, Color, Thickness, isMoreHorizontal(CenterX - y, CenterY + x));
-                    fb.SetPixel(CenterX + y, CenterY - x, Color, Thickness, isMoreHorizontal(CenterX + y, CenterY - x));
-                    fb.SetPixel(CenterX - y, CenterY - x, Color, Thickness, isMoreHorizontal(CenterX - y, CenterY - x));
+                    fb.SetPixel(Center.x + x, Center.y + y, Color, Thickness,isMoreHorizontal(Center.x + x, Center.y + y));
+                    fb.SetPixel(Center.x - x, Center.y + y, Color, Thickness,isMoreHorizontal(Center.x - x, Center.y + y));
+                    fb.SetPixel(Center.x + x, Center.y - y, Color, Thickness, isMoreHorizontal(Center.x + x, Center.y - y));
+                    fb.SetPixel(Center.x - x, Center.y - y, Color, Thickness, isMoreHorizontal(Center.x - x, Center.y - y));
+                    fb.SetPixel(Center.x + y, Center.y + x, Color, Thickness, isMoreHorizontal(Center.x + y, Center.y + x));
+                    fb.SetPixel(Center.x - y, Center.y + x, Color, Thickness, isMoreHorizontal(Center.x - y, Center.y + x));
+                    fb.SetPixel(Center.x + y, Center.y - x, Color, Thickness, isMoreHorizontal(Center.x + y, Center.y - x));
+                    fb.SetPixel(Center.x - y, Center.y - x, Color, Thickness, isMoreHorizontal(Center.x - y, Center.y - x));
                 }
             }
 
-            bool isMoreHorizontal(int x, int y) => (y == 0 ? int.MaxValue : Math.Abs(-x/y)) >= 1;
+            static bool isMoreHorizontal(int x, int y) => (y == 0 ? int.MaxValue : Math.Abs(-x/y)) >= 1;
         }
         public override void Draw(WriteableBitmap bitmap)
         {
@@ -58,26 +59,24 @@ namespace DrawingAppCG.Models
         }
         public override bool ContainsPoint(int x, int y)
         {
-            double distance = Math.Sqrt(Math.Pow(x - CenterX, 2) + Math.Pow(y - CenterY, 2));
+            double distance = Math.Sqrt(Math.Pow(x - Center.x, 2) + Math.Pow(y - Center.y, 2));
             return Math.Abs(distance - Radius) <= 5;
         }
         public override void Move(int deltaX, int deltaY)
         {
-            CenterX += deltaX;
-            CenterY += deltaY;
+            Center = (Center.x + deltaX, Center.y + deltaY);
         }
         public override void MovePoint(int pointIndex, int newX, int newY)
         {
             if (pointIndex == 0) // Center point
             {
-                CenterX = newX;
-                CenterY = newY;
+                Center = (newX, newY);
             }
             else // Radius handle
             {
-                Radius = (int)Math.Sqrt(Math.Pow(newX - CenterX, 2) + Math.Pow(newY - CenterY, 2));
+                Radius = (int)Math.Sqrt(Math.Pow(newX - Center.x, 2) + Math.Pow(newY - Center.y, 2));
             }
         }
-        public override List<(int x, int y)> GetControlPoints() => [(CenterX, CenterY), (CenterX + Radius, CenterY)];
+        public override List<(int x, int y)> GetControlPoints() => [Center, (Center.x + Radius, Center.y)];
     }
 }

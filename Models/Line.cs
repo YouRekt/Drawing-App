@@ -4,6 +4,8 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 
 namespace DrawingAppCG.Models
 {
@@ -54,7 +56,7 @@ namespace DrawingAppCG.Models
 
                     int i;
 
-                    if(steep)
+                    if (steep)
                     {
                         fb.IntensifyPixel(yf, xf, Color, Thickness, 0);
                         fb.IntensifyPixel(yb, xb, Color, Thickness, 0);
@@ -122,7 +124,7 @@ namespace DrawingAppCG.Models
 
                     void DrawPixel(int x, int y, bool isMoreHorizontal) => fb.SetPixel(x, y, Color, Thickness, isMoreHorizontal);
 
-                    // Handle horizontal/vertical lines  
+                    //horizontal/vertical lines (wikipedia said to optimize for these) 
                     if (y1 == y2 || x1 == x2)
                     {
                         bool horizontal = y1 == y2;
@@ -137,7 +139,7 @@ namespace DrawingAppCG.Models
                     int dy = Math.Abs(y2 - y1);
                     bool steep = dy > dx;
 
-                    // Swap x and y for steep lines  
+                    // swap x and y for steep lines  
                     if (steep)
                     {
                         (x1, y1) = (y1, x1);
@@ -145,7 +147,7 @@ namespace DrawingAppCG.Models
                         (dx, dy) = (dy, dx);
                     }
 
-                    // Ensure left-to-right drawing  
+                    // ensure left-to-right drawing  
                     if (x1 > x2)
                     {
                         (x1, x2) = (x2, x1);
@@ -199,7 +201,7 @@ namespace DrawingAppCG.Models
         }
         public override void Draw(WriteableBitmap bitmap)
         {
-            if(IsAntialiased)
+            if (IsAntialiased)
             {
                 DrawAntialiased(bitmap);
             }
