@@ -24,7 +24,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        var transformGroup = this.Resources["ImageTransform"] as TransformGroup;
+        var transformGroup = Resources["ImageTransform"] as TransformGroup;
         _scaleTransform = transformGroup?.Children.OfType<ScaleTransform>().FirstOrDefault();
         _translateTransform = transformGroup?.Children.OfType<TranslateTransform>().FirstOrDefault();
     }
@@ -67,6 +67,18 @@ public partial class MainWindow : Window
             vm.ClearShapes();
             startPoint = null;
             ImageCanvas.InvalidateVisual();
+            ImageOverlay.InvalidateVisual();
+        }
+    }
+    private void ToggleAA(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            foreach(AntiAliasedShapeBase antiAliasedShapeBase in vm.Shapes.OfType<AntiAliasedShapeBase>())
+            {
+                antiAliasedShapeBase.IsAntialiased = !antiAliasedShapeBase.IsAntialiased;
+                antiAliasedShapeBase.Draw(vm.Bitmap);
+            }
         }
     }
     private void Image_PointerWheelChanged(object? sender, PointerWheelEventArgs e)
@@ -95,14 +107,12 @@ public partial class MainWindow : Window
     }
     private void Image_PointerReleased(object? sender, PointerReleasedEventArgs e)
     {
-        if(DataContext is not MainWindowViewModel vm)
+        if (DataContext is not MainWindowViewModel vm)
             return;
 
-        if(vm.SelectedTool == Tool.Move)
+        if (vm.SelectedTool == Tool.Move)
         {
             vm.EndDrag();
-            ImageOverlay.InvalidateVisual();
-            ImageCanvas.InvalidateVisual();
         }
 
         _isDragging = false;
@@ -123,8 +133,6 @@ public partial class MainWindow : Window
 
                 _translateTransform.X += delta.X;
                 _translateTransform.Y += delta.Y;
-                ImageOverlay.InvalidateVisual();
-                ImageCanvas.InvalidateVisual();
             }
             e.Handled = true;
             return;
@@ -136,12 +144,18 @@ public partial class MainWindow : Window
 
         if (vm.SelectedTool == Tool.Move)
         {
-            vm.HandleDrag(x, y);
-            e.Handled = true;
-            return;
+            if (e.GetCurrentPoint((Visual?)sender!).Properties.IsLeftButtonPressed && vm.SelectedShape != null)
+            {
+                vm.HandleDrag(x, y);
+                ImageOverlay.InvalidateVisual();
+                e.Handled = true;
+                return;
+            }
         }
-
-        vm.ClearOverlay();
+        else
+        {
+            vm.ClearOverlay();
+        }
 
         if (startPoint != null)
         {
@@ -152,6 +166,7 @@ public partial class MainWindow : Window
                     {
                         IsAntialiased = vm.IsAntialiased,
                         Thickness = vm.SelectedThickness,
+                        Color = vm.SelectedColor,
                         Start = startPoint.Value,
                         End = (x, y),
                     };
@@ -161,6 +176,7 @@ public partial class MainWindow : Window
                     var circle = new Circle
                     {
                         Thickness = vm.SelectedThickness,
+                        Color = vm.SelectedColor,
                         CenterX = startPoint.Value.x,
                         CenterY = startPoint.Value.y,
                         Radius = (int)Math.Sqrt((x - startPoint.Value.x) * (x - startPoint.Value.x) + (y - startPoint.Value.y) * (y - startPoint.Value.y)),
@@ -180,6 +196,7 @@ public partial class MainWindow : Window
                     {
                         var poly = new Polygon
                         {
+                            Color = vm.SelectedColor,
                             IsAntialiased = vm.IsAntialiased,
                             Thickness = vm.SelectedThickness,
                         };
@@ -216,6 +233,10 @@ public partial class MainWindow : Window
             if (e.GetCurrentPoint((Visual?)sender!).Properties.IsRightButtonPressed)
             {
                 vm.SelectShapeAt(x, y);
+                if (vm.SelectedShape != null)
+                {
+                    vm.UpdateHitpoints();
+                }
             }
             else if (vm.SelectedShape != null)
             {
@@ -233,6 +254,7 @@ public partial class MainWindow : Window
             {
                 vm.TempPolygon = new Polygon
                 {
+                    Color = vm.SelectedColor,
                     IsAntialiased = vm.IsAntialiased,
                     Thickness = vm.SelectedThickness,
                 };
@@ -248,6 +270,7 @@ public partial class MainWindow : Window
                 case Tool.Line:
                     vm.AddShape(new Line
                     {
+                        Color = vm.SelectedColor,
                         IsAntialiased = vm.IsAntialiased,
                         Thickness = vm.SelectedThickness,
                         Start = (x1, y1),
@@ -260,6 +283,7 @@ public partial class MainWindow : Window
                     int radius = (int)Math.Sqrt((x - x1) * (x - x1) + (y - y1) * (y - y1));
                     vm.AddShape(new Circle
                     {
+                        Color = vm.SelectedColor,
                         Thickness = vm.SelectedThickness,
                         CenterX = x1,
                         CenterY = y1,
@@ -289,17 +313,5 @@ public partial class MainWindow : Window
             }
         }
         ImageCanvas.InvalidateVisual();
-    }
-    private void Image_KeyDown(object? sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Delete)
-        {
-            if (DataContext is MainWindowViewModel vm)
-            {
-                vm.DeleteSelectedShape();
-                vm.RedrawAll();
-                ImageCanvas.InvalidateVisual();
-            }
-        }
     }
 }

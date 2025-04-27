@@ -14,18 +14,21 @@ namespace DrawingAppCG.Models
         public abstract void MovePoint(int pointIndex, int newX, int newY);
         public abstract List<(int x, int y)> GetControlPoints();
         public abstract void Draw(WriteableBitmap bitmap);
-        public void DrawHitpoints(WriteableBitmap bitmap, (int sx, int sy)? selectedHitpoint = null)
+        public void DrawHitpoints(WriteableBitmap bitmap, int? selectedIndex = null)
         {
             using (var fb = bitmap.Lock())
             {
-                foreach (var (x, y) in GetControlPoints())
+                var controlPoints = GetControlPoints();
+                for(int i=0; i<controlPoints.Count; i++)
                 {
+                    var (x, y) = controlPoints[i];
+                    Color color = selectedIndex.HasValue && selectedIndex.Value == i ? Colors.Blue : Colors.Red;
                     var hitPoint = new Circle
                     {
                         CenterX = x,
                         CenterY = y,
                         Radius = 5,
-                        Color = selectedHitpoint != null ? (selectedHitpoint == (x, y) ? Colors.Blue : Colors.Red) : Colors.Red,
+                        Color = color,
                     };
                     hitPoint.Draw(bitmap);
                 }
