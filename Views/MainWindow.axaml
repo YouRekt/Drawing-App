@@ -33,6 +33,7 @@
 				<MenuItem Header="Line" Click="SelectLineTool" />
 				<MenuItem Header="Circle" Click="SelectCircleTool" />
 				<MenuItem Header="Polygon" Click="SelectPolygonTool" />
+				<MenuItem Header="Pill" Click="SelectPillTool" />
 				<MenuItem Header="Move" Click="SelectMoveTool" />
 			</MenuItem>
 			<MenuItem Header="Render Options">

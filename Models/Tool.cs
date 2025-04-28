@@ -12,6 +12,7 @@ namespace DrawingAppCG.Models
         Line,
         Circle,
         Polygon,
+        Pill,
         Move
     }
 }

@@ -52,6 +52,14 @@ public partial class MainWindow : Window
             startPoint = null;
         }
     }
+    private void SelectPillTool(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.SelectedTool = Tool.Pill;
+            startPoint = null;
+        }
+    }
     private void SelectMoveTool(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainWindowViewModel vm)
@@ -182,6 +190,16 @@ public partial class MainWindow : Window
                     };
                     circle.Draw(vm.Overlay);
                     break;
+                case Tool.Pill:
+                    var pill = new Pill
+                    {
+                        Color = vm.SelectedColor,
+                        CenterA = (startPoint.Value.x, startPoint.Value.y),
+                        CenterB = (x, y),
+                        Radius = 10,
+                    };
+                    pill.Draw(vm.Overlay);
+                    break;
                 case Tool.Polygon:
                     var FirstPoint = new Circle()
                     {
@@ -285,6 +303,16 @@ public partial class MainWindow : Window
                         Thickness = vm.SelectedThickness,
                         Center = (x1, y1),
                         Radius = radius,
+                    });
+                    startPoint = null;
+                    break;
+                case Tool.Pill:
+                    vm.AddShape(new Pill
+                    {
+                        Color = vm.SelectedColor,
+                        CenterA = (x1, y1),
+                        CenterB = (x, y),
+                        Radius = 10,
                     });
                     startPoint = null;
                     break;
