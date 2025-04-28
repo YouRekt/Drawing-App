@@ -209,6 +209,7 @@ namespace DrawingAppCG.ViewModels
                     SelectedShape.MovePoint(index,
                         controlPoints[index].x + deltaX,
                         controlPoints[index].y + deltaY);
+                    System.Diagnostics.Debug.WriteLine($"Moving point {index}: {controlPoints[index].x} + {deltaX}, {controlPoints[index].y} + {deltaY}");
                 }
             }
             else

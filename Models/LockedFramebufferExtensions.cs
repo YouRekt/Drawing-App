@@ -91,7 +91,11 @@ namespace DrawingAppCG.Models
         }
         public static float IntensifyPixel(this ILockedFramebuffer framebuffer, int x, int y, Color color, float thickness, float distance, Color? background = null)
         {
-            background ??= Colors.White;
+            var bgPixel = framebuffer.GetPixel(x, y);
+
+            background = Color.FromArgb(bgPixel[3], bgPixel[2], bgPixel[1], bgPixel[0]);
+            if (bgPixel[3] == 0)
+                background = Colors.White;
 
             float r = 0.5f;
             float cov = Coverage(thickness, distance, r);

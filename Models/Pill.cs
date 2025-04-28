@@ -1,8 +1,10 @@
-﻿using Avalonia.Media.Imaging;
+﻿using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace DrawingAppCG.Models
@@ -14,9 +16,9 @@ namespace DrawingAppCG.Models
         public int Radius { get; set; }
         public override bool ContainsPoint(int x, int y)
         {
-            return Distance((x, y), CenterA) <= Radius || Distance((x, y), CenterB) <= Radius;
+            return Distance((x, y), CenterA) <= Radius || Distance((x, y), CenterB) <= Radius || Line.DistanceToLine(x, y, CenterA.x - P.x, CenterA.y + P.y, CenterB.x - P.x, CenterB.y + P.y) <= 5 || Line.DistanceToLine(x, y, CenterA.x + P.x, CenterA.y - P.y, CenterB.x + P.x, CenterB.y - P.y) <= 5;
 
-            double Distance((int x, int y) point1, (int x, int y) point2)
+            static double Distance((int x, int y) point1, (int x, int y) point2)
             {
                 return Math.Sqrt(Math.Pow(point1.x - point2.x, 2) + Math.Pow(point1.y - point2.y, 2));
             }
@@ -27,62 +29,49 @@ namespace DrawingAppCG.Models
             {
                 unsafe
                 {
-                    (int dx, int dy) = (CenterB.x - CenterA.x,  CenterB.y - CenterA.y);
-
-                    //Octant 2
-                    if(DotProduct((x, y),(dx,dy)) > 0)
+                    if (DotProduct((x, y), (dx, dy)) > 0)
                     {
-                        //fb.SetPixel(CenterA.x + x + dx, CenterA.y + y + dy, Color);
                         fb.SetPixel(CenterB.x + x, CenterB.y + y, Color);
                     }
                     else
                     {
                         fb.SetPixel(CenterA.x + x, CenterA.y + y, Color);
                     }
-                    //Octant 3
-                    if(DotProduct((-x, y),(dx,dy)) > 0)
+                    if (DotProduct((-x, y), (dx, dy)) > 0)
                     {
-                        //fb.SetPixel(CenterA.x - x + dx, CenterA.y + y + dy, Color);
                         fb.SetPixel(CenterB.x - x, CenterB.y + y, Color);
                     }
                     else
                     {
                         fb.SetPixel(CenterA.x - x, CenterA.y + y, Color);
                     }
-                    //Octant 7
                     if (DotProduct((x, -y), (dx, dy)) > 0)
                     {
-                        //fb.SetPixel(CenterB.x + x + dx, CenterB.y - y + dy, Color);
                         fb.SetPixel(CenterB.x + x, CenterB.y - y, Color);
                     }
                     else
                     {
                         fb.SetPixel(CenterA.x + x, CenterA.y - y, Color);
                     }
-                    //Octant 6
                     if (DotProduct((-x, -y), (dx, dy)) > 0)
                     {
-                        //fb.SetPixel(CenterB.x - x + dx, CenterB.y - y + dy, Color);
                         fb.SetPixel(CenterB.x - x, CenterB.y - y, Color);
                     }
                     else
                     {
                         fb.SetPixel(CenterA.x - x, CenterA.y - y, Color);
                     }
-                    //Octant 4
                     if (DotProduct((y, x), (dx, dy)) > 0)
                     {
-                        //fb.SetPixel(CenterA.x + y + dx, CenterA.y + x + dy, Color);
                         fb.SetPixel(CenterB.x + y, CenterB.y + x, Color);
                     }
                     else
                     {
                         fb.SetPixel(CenterA.x + y, CenterA.y + x, Color);
                     }
-                    //Octant 1
                     if (DotProduct((-y, x), (dx, dy)) > 0)
                     {
-                        //fb.SetPixel(CenterB.x - y + dx, CenterB.y + x + dy, Color);
+
                         fb.SetPixel(CenterB.x - y, CenterB.y + x, Color);
                     }
                     else
@@ -91,7 +80,6 @@ namespace DrawingAppCG.Models
                     }
                     if (DotProduct((y, -x), (dx, dy)) > 0)
                     {
-                        //fb.SetPixel(CenterA.x + y + dx, CenterA.y - x + dy, Color);
                         fb.SetPixel(CenterB.x + y, CenterB.y - x, Color);
                     }
                     else
@@ -100,7 +88,6 @@ namespace DrawingAppCG.Models
                     }
                     if (DotProduct((-y, -x), (dx, dy)) > 0)
                     {
-                        //fb.SetPixel(CenterA.x - y + dx, CenterA.y - x + dy, Color);
                         fb.SetPixel(CenterB.x - y, CenterB.y - x, Color);
                     }
                     else
@@ -109,36 +96,33 @@ namespace DrawingAppCG.Models
                     }
                 }
             }
-            static float DotProduct((int x, int y) vector1, (int x, int y) vector2)
-            {
-                return vector1.x * vector2.x + vector1.y * vector2.y;
-            }
         }
-
+        private static float DotProduct((int x, int y) vector1, (int x, int y) vector2)
+        {
+            return vector1.x * vector2.x + vector1.y * vector2.y;
+        }
+        [JsonIgnore]
+        private int dx => CenterB.x - CenterA.x;
+        [JsonIgnore]
+        private int dy => CenterB.y - CenterA.y;
+        [JsonIgnore]
+        private (int x, int y) P => ((int)(dy / Math.Sqrt(dx * dx + dy * dy) * Radius), (int)(dx / Math.Sqrt(dx * dx + dy * dy) * Radius));
         public override void Draw(WriteableBitmap bitmap)
         {
             using (var fb = bitmap.Lock())
             {
                 unsafe
                 {
-                    (int dx, int dy) = (CenterA.x - CenterB.x, CenterA.y - CenterB.y);
-                    System.Diagnostics.Debug.WriteLine($"dx: {dx}, dy: {dy}");
-                    double length = Math.Sqrt(dx * dx + dy * dy);
-                    (int x, int y) p1 = ((int)(-dy / length * Radius),(int)(dx / length * Radius));
-                    (int x, int y) p2 = ((int)(dy / length * Radius),(int)(-dx / length * Radius));
-                    //(int x, int y) p1 = ((int)(-dy / Math.Sqrt(dy * dy + dx * dx) * Radius), (int)(dx / Math.Sqrt(dy * dy + dx * dx) * Radius));
-                    //(int x, int y) p2 = ((int)(dy / Math.Sqrt(dy * dy + dx * dx) * Radius), (int)(-dx / Math.Sqrt(dy * dy + dx * dx) * Radius));
-
                     var line1 = new Line
                     {
-                        Start = (CenterA.x + p1.x, CenterA.y + p1.y),
-                        End = (CenterB.x + p1.x, CenterB.y + p1.y),
+                        Start = (CenterA.x - P.x, CenterA.y + P.y),
+                        End = (CenterB.x - P.x, CenterB.y + P.y),
                         Color = Color,
                     };
                     var line2 = new Line
                     {
-                        Start = (CenterA.x + p2.x, CenterA.y + p2.y),
-                        End = (CenterB.x + p2.x, CenterB.y + p2.y),
+                        Start = (CenterA.x + P.x, CenterA.y - P.y),
+                        End = (CenterB.x + P.x, CenterB.y - P.y),
                         Color = Color,
                     };
                     line1.Draw(bitmap);
@@ -172,18 +156,15 @@ namespace DrawingAppCG.Models
                 }
             }
         }
-
-        public override List<(int x, int y)> GetControlPoints() => [CenterA, CenterB, (CenterA.x + Radius, CenterA.y + Radius), (CenterB.x + Radius, CenterB.y + Radius)];
-
+        public override List<(int x, int y)> GetControlPoints() => [CenterA, CenterB, (CenterA.x + dx / 2 - P.x, CenterA.y + dy / 2 + P.y)];
         public override void Move(int deltaX, int deltaY)
         {
             CenterA = (CenterA.x + deltaX, CenterA.y + deltaY);
             CenterB = (CenterB.x + deltaX, CenterB.y + deltaY);
         }
-
         public override void MovePoint(int pointIndex, int newX, int newY)
         {
-            switch(pointIndex)
+            switch (pointIndex)
             {
                 case 0:
                     CenterA = (newX, newY);
@@ -192,10 +173,9 @@ namespace DrawingAppCG.Models
                     CenterB = (newX, newY);
                     break;
                 case 2:
-                    Radius = (int)Math.Sqrt(Math.Pow(newX - CenterA.x, 2) + Math.Pow(newY - CenterA.y, 2));
-                    break;
-                case 3:
-                    Radius = (int)Math.Sqrt(Math.Pow(newX - CenterA.x, 2) + Math.Pow(newY - CenterA.y, 2));
+                    (int x, int y) v = ((int)(newX - (CenterA.x + dx / 2)), (int)(newY - (CenterA.y + dy / 2)));
+
+                    Radius = (int)Math.Sqrt(v.x * v.x + v.y * v.y);
                     break;
             }
         }

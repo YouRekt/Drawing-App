@@ -10,6 +10,7 @@ namespace DrawingAppCG.Models
     [JsonDerivedType(typeof(Circle), "Circle")]
     [JsonDerivedType(typeof(Line), "Line")]
     [JsonDerivedType(typeof(Polygon), "Polygon")]
+    [JsonDerivedType(typeof(Pill), "Pill")]
     public abstract class ShapeBase
     {
         [JsonConverter(typeof(ColorConverter))]

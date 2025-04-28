@@ -55,8 +55,8 @@ namespace DrawingAppCG.Models
                     if (steep)
                     {
                         fb.IntensifyPixel(y, x, Color, Thickness, 0);
-                        for (i = 1; fb.IntensifyPixel(y, x + i, Color, Thickness, i * two_dx_invDenom) > 0; ++i) ;
-                        for (i = 1; fb.IntensifyPixel(y, x - i, Color, Thickness, i * two_dx_invDenom) > 0; ++i) ;
+                        for (i = 1; fb.IntensifyPixel(y + i, x, Color, Thickness, i * two_dx_invDenom) > 0; ++i) ;
+                        for (i = 1; fb.IntensifyPixel(y - i, x, Color, Thickness, i * two_dx_invDenom) > 0; ++i) ;
                     }
                     else
                     {
@@ -82,33 +82,15 @@ namespace DrawingAppCG.Models
 
                         if (steep)
                         {
-                            if(inverted)
-                            {
-                                fb.IntensifyPixel(y, x, Color, Thickness, two_v_dx * invDenom);
-                                for (i = 1; fb.IntensifyPixel(y, x - i, Color, Thickness, i * two_dx_invDenom + two_v_dx * invDenom) > 0; ++i) ;
-                                for (i = 1; fb.IntensifyPixel(y, x + i, Color, Thickness, i * two_dx_invDenom - two_v_dx * invDenom) > 0; ++i) ;
-                            }
-                            else
-                            {
-                                fb.IntensifyPixel(y, x, Color, Thickness, two_v_dx * invDenom);
-                                for (i = 1; fb.IntensifyPixel(y, x - i, Color, Thickness, i * two_dx_invDenom - two_v_dx * invDenom) > 0; ++i) ;
-                                for (i = 1; fb.IntensifyPixel(y, x + i, Color, Thickness, i * two_dx_invDenom + two_v_dx * invDenom) > 0; ++i) ;
-                            }
+                            fb.IntensifyPixel(y, x, Color, Thickness, two_v_dx * invDenom);
+                            for (i = 1; fb.IntensifyPixel(y + i, x, Color, Thickness, i * two_dx_invDenom - s * two_v_dx * invDenom) > 0; ++i) ;
+                            for (i = 1; fb.IntensifyPixel(y - i, x, Color, Thickness, i * two_dx_invDenom + s * two_v_dx * invDenom) > 0; ++i) ;
                         }
                         else
                         {
-                            if (inverted)
-                            {
-                                fb.IntensifyPixel(x, y, Color, Thickness, 0);
-                                for (i = 1; fb.IntensifyPixel(x, y + i, Color, Thickness, i * two_dx_invDenom + two_v_dx * invDenom) > 0; ++i) ;
-                                for (i = 1; fb.IntensifyPixel(x, y - i, Color, Thickness, i * two_dx_invDenom - two_v_dx * invDenom) > 0; ++i) ;
-                            }
-                            else
-                            {
-                                fb.IntensifyPixel(x, y, Color, Thickness, 0);
-                                for (i = 1; fb.IntensifyPixel(x, y + i, Color, Thickness, i * two_dx_invDenom - two_v_dx * invDenom) > 0; ++i) ;
-                                for (i = 1; fb.IntensifyPixel(x, y - i, Color, Thickness, i * two_dx_invDenom + two_v_dx * invDenom) > 0; ++i) ;
-                            }
+                            fb.IntensifyPixel(x, y, Color, Thickness, 0);
+                            for (i = 1; fb.IntensifyPixel(x, y + i, Color, Thickness, i * two_dx_invDenom - s * two_v_dx * invDenom) > 0; ++i) ;
+                            for (i = 1; fb.IntensifyPixel(x, y - i, Color, Thickness, i * two_dx_invDenom + s * two_v_dx * invDenom) > 0; ++i) ;
                         }
                     }
                 }
