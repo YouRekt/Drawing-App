@@ -11,6 +11,7 @@ namespace DrawingAppCG.Models
         None,
         Line,
         Circle,
+        Rectangle,
         Polygon,
         Pill,
         Move

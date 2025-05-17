@@ -11,6 +11,7 @@ namespace DrawingAppCG.Models
     [JsonDerivedType(typeof(Line), "Line")]
     [JsonDerivedType(typeof(Polygon), "Polygon")]
     [JsonDerivedType(typeof(Pill), "Pill")]
+    [JsonDerivedType(typeof(Rectangle), "Rectangle")]
     public abstract class ShapeBase
     {
         [JsonConverter(typeof(ColorConverter))]
@@ -45,6 +46,7 @@ namespace DrawingAppCG.Models
     }
     [JsonDerivedType(typeof(Line), "Line")]
     [JsonDerivedType(typeof(Polygon), "Polygon")]
+    [JsonDerivedType(typeof(Rectangle), "Rectangle")]
     public abstract class AntiAliasedShapeBase : ShapeBase
     {
         public bool IsAntialiased { get; set; } = false;

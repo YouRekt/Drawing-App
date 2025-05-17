@@ -94,6 +94,7 @@ namespace DrawingAppCG.ViewModels
             }
         }
         public HashSet<int> SelectedPointIndices { get; } = [];
+        private int? _lastSelectedPointIndex;
         private (int x, int y)? _dragStartPoint;
         public MainWindowViewModel()
         {
@@ -162,12 +163,27 @@ namespace DrawingAppCG.ViewModels
                         var (ptX, ptY) = controlPoints[i];
                         if (Math.Abs(ptX - x) < 5 && Math.Abs(ptY - y) < 5)
                         {
-                            if (isShiftDown && shape is Polygon)
+                            if (isShiftDown)
                             {
-                                if (SelectedPointIndices.Contains(i))
-                                    SelectedPointIndices.Remove(i);
-                                else
-                                    SelectedPointIndices.Add(i);
+                                switch (shape)
+                                {
+                                    case Polygon:
+                                        if (SelectedPointIndices.Contains(i))
+                                            SelectedPointIndices.Remove(i);
+                                        else
+                                            SelectedPointIndices.Add(i);
+                                        break;
+                                    case Rectangle:
+                                        if (SelectedPointIndices.Contains(i))
+                                            SelectedPointIndices.Remove(i);
+                                        else if (!(SelectedPointIndices.Contains(i + 1) || SelectedPointIndices.Contains(i - 1)))
+                                        {
+                                            if (SelectedPointIndices.Count == 2)
+                                                SelectedPointIndices.Remove(_lastSelectedPointIndex!.Value);
+                                            SelectedPointIndices.Add(i);
+                                        }
+                                        break;
+                                }
                             }
                             else
                             {

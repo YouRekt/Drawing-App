@@ -32,6 +32,7 @@
 			<MenuItem Header="{Binding SelectedTool,UpdateSourceTrigger=PropertyChanged, StringFormat='Tool: {0}'}">
 				<MenuItem Header="Line" Click="SelectLineTool" />
 				<MenuItem Header="Circle" Click="SelectCircleTool" />
+				<MenuItem Header="Rectangle" Click="SelectRectangleTool" />
 				<MenuItem Header="Polygon" Click="SelectPolygonTool" />
 				<MenuItem Header="Pill" Click="SelectPillTool" />
 				<MenuItem Header="Move" Click="SelectMoveTool" />

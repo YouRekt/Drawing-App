@@ -44,6 +44,14 @@ public partial class MainWindow : Window
             startPoint = null;
         }
     }
+    private void SelectRectangleTool(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.SelectedTool = Tool.Rectangle;
+            startPoint = null;
+        }
+    }
     private void SelectPolygonTool(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainWindowViewModel vm)
@@ -82,7 +90,7 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainWindowViewModel vm)
         {
-            foreach(AntiAliasedShapeBase antiAliasedShapeBase in vm.Shapes.OfType<AntiAliasedShapeBase>())
+            foreach (AntiAliasedShapeBase antiAliasedShapeBase in vm.Shapes.OfType<AntiAliasedShapeBase>())
             {
                 antiAliasedShapeBase.IsAntialiased = !antiAliasedShapeBase.IsAntialiased;
                 antiAliasedShapeBase.Draw(vm.Bitmap);
@@ -189,6 +197,17 @@ public partial class MainWindow : Window
                         Radius = (int)Math.Sqrt((x - startPoint.Value.x) * (x - startPoint.Value.x) + (y - startPoint.Value.y) * (y - startPoint.Value.y)),
                     };
                     circle.Draw(vm.Overlay);
+                    break;
+                case Tool.Rectangle:
+                    var rectangle = new Rectangle
+                    {
+                        TopLeft = startPoint.Value,
+                        BottomRight = (x, y),
+                        IsAntialiased = vm.IsAntialiased,
+                        Thickness = vm.SelectedThickness,
+                        Color = vm.SelectedColor,
+                    };
+                    rectangle.Draw(vm.Overlay);
                     break;
                 case Tool.Pill:
                     var pill = new Pill
@@ -303,6 +322,17 @@ public partial class MainWindow : Window
                         Thickness = vm.SelectedThickness,
                         Center = (x1, y1),
                         Radius = radius,
+                    });
+                    startPoint = null;
+                    break;
+                case Tool.Rectangle:
+                    vm.AddShape(new Rectangle
+                    {
+                        IsAntialiased = vm.IsAntialiased,
+                        Thickness = vm.SelectedThickness,
+                        Color = vm.SelectedColor,
+                        TopLeft = (x1, y1),
+                        BottomRight = (x, y),
                     });
                     startPoint = null;
                     break;
