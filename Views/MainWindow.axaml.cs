@@ -9,6 +9,8 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using DrawingAppCG.Models;
 using DrawingAppCG.ViewModels;
+using MsBox.Avalonia.Enums;
+using MsBox.Avalonia;
 using System;
 using System.Linq;
 
@@ -73,6 +75,16 @@ public partial class MainWindow : Window
         if (DataContext is MainWindowViewModel vm)
         {
             vm.SelectedTool = Tool.Move;
+            startPoint = null;
+        }
+    }
+    private void SelectClipTool(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.SelectedTool = Tool.Clip;
+            vm.CurrentClippingStage = ClippingStage.None;
+
             startPoint = null;
         }
     }
@@ -158,19 +170,27 @@ public partial class MainWindow : Window
         int x = (int)point.X;
         int y = (int)point.Y;
 
-        if (vm.SelectedTool == Tool.Move)
+        switch (vm.SelectedTool)
         {
-            if (e.GetCurrentPoint((Visual?)sender!).Properties.IsLeftButtonPressed && vm.SelectedShape != null)
-            {
-                vm.HandleDrag(x, y);
-                ImageOverlay.InvalidateVisual();
-                e.Handled = true;
-                return;
-            }
-        }
-        else
-        {
-            vm.ClearOverlay();
+            case Tool.Move:
+                if (e.GetCurrentPoint((Visual?)sender!).Properties.IsLeftButtonPressed && vm.SelectedShape != null)
+                {
+                    vm.HandleDrag(x, y);
+                    ImageOverlay.InvalidateVisual();
+                    e.Handled = true;
+                    return;
+                }
+                break;
+            case Tool.Clip when vm.CurrentClippingStage != ClippingStage.None && vm.CurrentClippingStage != ClippingStage.DefinedClippingPolygon:
+                //if(vm.CurrentClippingStage != ClippingStage.None)
+                //{
+                //    vm.UpdateClippedHitpoints();
+                //}
+                vm.UpdateClippedHitpoints();
+                break;
+            default:
+                vm.ClearOverlay();
+                break;
         }
 
         if (startPoint != null)
@@ -223,7 +243,7 @@ public partial class MainWindow : Window
                     var FirstPoint = new Circle()
                     {
                         Center = (startPoint.Value.x, startPoint.Value.y),
-                        Radius = 10,
+                        Radius = 5,
                         Color = Colors.Red,
                     };
                     FirstPoint.Draw(vm.Overlay);
@@ -240,11 +260,36 @@ public partial class MainWindow : Window
                         poly.Draw(vm.Overlay);
                     }
                     break;
+                case Tool.Clip:
+                    if (vm.CurrentClippingStage == ClippingStage.SelectedSubjectPolygon)
+                    {
+                        FirstPoint = new Circle()
+                        {
+                            Center = (startPoint.Value.x, startPoint.Value.y),
+                            Radius = 5,
+                            Color = Colors.Red,
+                        };
+                        FirstPoint.Draw(vm.Overlay);
+                        if (vm.ClippingPolygon != null)
+                        {
+                            var poly = new Polygon
+                            {
+                                Color = vm.SelectedColor,
+                                IsAntialiased = vm.IsAntialiased,
+                                Thickness = vm.SelectedThickness,
+                                IsClipping = true,
+                            };
+                            poly.Points.AddRange(vm.ClippingPolygon.Points);
+                            poly.Points.Add((x, y));
+                            poly.Draw(vm.Overlay);
+                        }
+                    }
+                    break;
             }
         }
         ImageOverlay.InvalidateVisual();
     }
-    private void Image_PointerPressed(object? sender, PointerPressedEventArgs e)
+    private async void Image_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
         if (DataContext is not MainWindowViewModel vm)
             return;
@@ -284,21 +329,48 @@ public partial class MainWindow : Window
 
         if (startPoint == null)
         {
-            startPoint = (x, y);
-            if (vm.SelectedTool == Tool.Polygon)
+            switch (vm.SelectedTool)
             {
-                vm.TempPolygon = new Polygon
-                {
-                    Color = vm.SelectedColor,
-                    IsAntialiased = vm.IsAntialiased,
-                    Thickness = vm.SelectedThickness,
-                };
-                vm.TempPolygon.Points.Add((x, y));
+                case Tool.Polygon:
+                    vm.TempPolygon = new Polygon
+                    {
+                        Color = vm.SelectedColor,
+                        IsAntialiased = vm.IsAntialiased,
+                        Thickness = vm.SelectedThickness,
+                    };
+                    vm.TempPolygon.Points.Add((x, y));
+                    break;
+                case Tool.Clip:
+                    switch (vm.CurrentClippingStage)
+                    {
+                        case ClippingStage.None:
+                            if (e.GetCurrentPoint((Visual?)sender!).Properties.IsRightButtonPressed)
+                            {
+                                vm.SelectClipSubjectAt(x, y);
+                                ImageOverlay.InvalidateVisual();
+                            }
+                            return;
+                        case ClippingStage.SelectedSubjectPolygon:
+                            vm.ClippingPolygon = new Polygon
+                            {
+                                Color = vm.SelectedColor, // SkyBlue
+                                IsAntialiased = vm.IsAntialiased,
+                                Thickness = vm.SelectedThickness,
+                                IsClipping = true,
+                            };
+                            vm.ClippingPolygon.Points.Add((x, y));
+                            break;
+                        default:
+                            return;
+                    }
+                    break;
             }
+            startPoint = (x, y);
         }
         else
         {
             var (x1, y1) = startPoint.Value;
+            double dist = Math.Sqrt((x - x1) * (x - x1) + (y - y1) * (y - y1));
 
             switch (vm.SelectedTool)
             {
@@ -313,9 +385,8 @@ public partial class MainWindow : Window
                     });
                     startPoint = null;
                     break;
-
                 case Tool.Circle:
-                    int radius = (int)Math.Sqrt((x - x1) * (x - x1) + (y - y1) * (y - y1));
+                    int radius = (int)dist;
                     vm.AddShape(new Circle
                     {
                         Color = vm.SelectedColor,
@@ -347,9 +418,7 @@ public partial class MainWindow : Window
                     startPoint = null;
                     break;
                 case Tool.Polygon:
-                    double dist = Math.Sqrt((x - x1) * (x - x1) + (y - y1) * (y - y1));
-
-                    if (dist < 10 && vm.TempPolygon!.Points.Count >= 3)
+                    if (dist < 5 && vm.TempPolygon!.Points.Count >= 3)
                     {
                         // Close Polygon
                         vm.AddShape(vm.TempPolygon);
@@ -361,6 +430,35 @@ public partial class MainWindow : Window
                         vm.TempPolygon!.Points.Add((x, y));
                     }
 
+                    break;
+                case Tool.Clip:
+                    switch (vm.CurrentClippingStage)
+                    {
+                        case ClippingStage.SelectedSubjectPolygon:
+                            if (dist < 5 && vm.ClippingPolygon!.Points.Count >= 3)
+                            {
+                                // Close Polygon
+                                if (!vm.ClippingPolygon.IsConvex)
+                                {
+                                    var box = MessageBoxManager.GetMessageBoxStandard("Error", "The provided clipping polygon is not convex", ButtonEnum.Ok);
+
+                                    await box.ShowAsync();
+                                    startPoint = null;
+                                    return;
+                                }
+                                vm.CurrentClippingStage = ClippingStage.DefinedClippingPolygon;
+                                vm.ClipSubject!.Clip = vm.ClippingPolygon;
+                                vm.ClipSubject!.ClipId = vm.ClippingPolygon.Id;
+                                vm.AddShape(vm.ClippingPolygon);
+                                vm.ClipSubject.Draw(vm.Bitmap);
+                                startPoint = null;
+                            }
+                            else
+                            {
+                                vm.ClippingPolygon!.Points.Add((x, y));
+                            }
+                            break;
+                    }
                     break;
                 default:
                     startPoint = null;

@@ -14,6 +14,13 @@ namespace DrawingAppCG.Models
         Rectangle,
         Polygon,
         Pill,
-        Move
+        Move,
+        Clip
+    }
+    public enum ClippingStage
+    {
+        None,
+        SelectedSubjectPolygon,
+        DefinedClippingPolygon
     }
 }

@@ -96,17 +96,17 @@ namespace DrawingAppCG.Models
                     }
                 }
             }
-        }
-        private static float DotProduct((int x, int y) vector1, (int x, int y) vector2)
-        {
-            return vector1.x * vector2.x + vector1.y * vector2.y;
+            static float DotProduct((int x, int y) vector1, (int x, int y) vector2)
+            {
+                return vector1.x * vector2.x + vector1.y * vector2.y;
+            }
         }
         [JsonIgnore]
         private int dx => CenterB.x - CenterA.x;
         [JsonIgnore]
         private int dy => CenterB.y - CenterA.y;
         [JsonIgnore]
-        private (int x, int y) P => ((int)(dy / Math.Sqrt(dx * dx + dy * dy) * Radius), (int)(dx / Math.Sqrt(dx * dx + dy * dy) * Radius));
+        private (int x, int y) P => ((int)Math.Round(dy / Math.Sqrt(dx * dx + dy * dy) * Radius), (int)Math.Round(dx / Math.Sqrt(dx * dx + dy * dy) * Radius));
         public override void Draw(WriteableBitmap bitmap)
         {
             using (var fb = bitmap.Lock())

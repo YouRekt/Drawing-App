@@ -1,5 +1,6 @@
 ﻿using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Text.Json.Serialization;
@@ -14,6 +15,7 @@ namespace DrawingAppCG.Models
     [JsonDerivedType(typeof(Rectangle), "Rectangle")]
     public abstract class ShapeBase
     {
+        public Guid Id { get; set; } = Guid.NewGuid();
         [JsonConverter(typeof(ColorConverter))]
         public Color Color { get; set; } = Colors.Black;
         public int Thickness { get; set; } = 1;

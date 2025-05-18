@@ -17,6 +17,7 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Xml.Schema;
+using System.Reflection;
 
 namespace DrawingAppCG.ViewModels
 {
@@ -96,6 +97,9 @@ namespace DrawingAppCG.ViewModels
         public HashSet<int> SelectedPointIndices { get; } = [];
         private int? _lastSelectedPointIndex;
         private (int x, int y)? _dragStartPoint;
+        public ClippingStage CurrentClippingStage { get; set; } = ClippingStage.None;
+        public Polygon? ClipSubject { get; private set; } // Potentially AntiAliasedShape to discard Circle and Pill from clipping? Now polygon for sake of simplicity
+        public Polygon? ClippingPolygon { get; set; }
         public MainWindowViewModel()
         {
             Bitmap = new(new PixelSize(_width, _height), new Vector(96, 96), PixelFormat.Bgra8888);
@@ -135,6 +139,7 @@ namespace DrawingAppCG.ViewModels
         {
             Shapes.Add(shape);
             shape.Draw(Bitmap);
+            OnPropertyChanged(nameof(Bitmap));
         }
         public void ClearShapes()
         {
@@ -167,7 +172,7 @@ namespace DrawingAppCG.ViewModels
                             {
                                 switch (shape)
                                 {
-                                    case Polygon:
+                                    case Polygon when shape is not Rectangle:
                                         if (SelectedPointIndices.Contains(i))
                                             SelectedPointIndices.Remove(i);
                                         else
@@ -176,11 +181,12 @@ namespace DrawingAppCG.ViewModels
                                     case Rectangle:
                                         if (SelectedPointIndices.Contains(i))
                                             SelectedPointIndices.Remove(i);
-                                        else if (!(SelectedPointIndices.Contains(i + 1) || SelectedPointIndices.Contains(i - 1)))
+                                        else if (!SelectedPointIndices.Contains((i + 2) % 4))
                                         {
                                             if (SelectedPointIndices.Count == 2)
                                                 SelectedPointIndices.Remove(_lastSelectedPointIndex!.Value);
                                             SelectedPointIndices.Add(i);
+                                            _lastSelectedPointIndex = i;
                                         }
                                         break;
                                 }
@@ -205,6 +211,23 @@ namespace DrawingAppCG.ViewModels
                 RedrawAll();
             }
         }
+        public void SelectClipSubjectAt(int x, int y)
+        {
+            foreach (var shape in Shapes)
+            {
+                if (shape is Polygon polygon)
+                {
+                    if (polygon.ContainsPoint(x, y))
+                    {
+                        ClipSubject = polygon;
+                        CurrentClippingStage = ClippingStage.SelectedSubjectPolygon;
+                        UpdateClippedHitpoints();
+                        return;
+                    }
+                    else ClipSubject = null;
+                }
+            }
+        }
         public void StartDrag(int x, int y)
         {
             _dragStartPoint = (x, y);
@@ -225,7 +248,7 @@ namespace DrawingAppCG.ViewModels
                     SelectedShape.MovePoint(index,
                         controlPoints[index].x + deltaX,
                         controlPoints[index].y + deltaY);
-                    System.Diagnostics.Debug.WriteLine($"Moving point {index}: {controlPoints[index].x} + {deltaX}, {controlPoints[index].y} + {deltaY}");
+                    //System.Diagnostics.Debug.WriteLine($"Moving point {index}: {controlPoints[index].x} + {deltaX}, {controlPoints[index].y} + {deltaY}");
                 }
             }
             else
@@ -242,6 +265,12 @@ namespace DrawingAppCG.ViewModels
         {
             ClearOverlay();
             SelectedShape?.DrawHitpoints(Overlay, SelectedPointIndices);
+        }
+        public void UpdateClippedHitpoints()
+        {
+            ClearOverlay();
+            //System.Diagnostics.Debug.WriteLine($"Count: {ClipSubject!.GetControlPoints().Count}, Enumerable.Range: {String.Join(", ", Enumerable.Range(0, ClipSubject.GetControlPoints().Count))}");
+            ClipSubject!.DrawHitpoints(Overlay, [.. Enumerable.Range(0, ClipSubject.GetControlPoints().Count)]);
         }
         public void EndDrag()
         {
@@ -289,6 +318,19 @@ namespace DrawingAppCG.ViewModels
                 stream, SerializerOptions);
 
             if (loadedShapes is null) return;
+
+            // Rebuild clip references
+            var polygonMap = loadedShapes
+                .OfType<Polygon>()
+                .ToDictionary(p => p.Id);
+
+            foreach (var polygon in polygonMap.Values)
+            {
+                if (polygon.ClipId is Guid id && polygonMap.TryGetValue(id, out var clip))
+                {
+                    polygon.Clip = clip;
+                }
+            }
 
             ClearShapes();
             foreach (var shape in loadedShapes)
