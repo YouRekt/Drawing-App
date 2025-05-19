@@ -1,10 +1,6 @@
 ﻿using Avalonia.Media;
 using Avalonia.Platform;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace DrawingAppCG.Models
 {
@@ -21,6 +17,9 @@ namespace DrawingAppCG.Models
         {
             unsafe
             {
+                if (x < 0 || x >= framebuffer.Size.Width || y < 0 || y >= framebuffer.Size.Height)
+                    throw new ArgumentOutOfRangeException("Trying to get pixel outside the image.");
+
                 int offset = framebuffer.RowBytes * y + 4 * x;
                 return new Span<byte>((byte*)framebuffer.Address + offset, 4);
             }
