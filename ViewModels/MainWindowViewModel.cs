@@ -10,14 +10,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.Serialization;
 using System.Text.Json;
-using System.Text.Json.Serialization.Metadata;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
-using System.Windows.Input;
-using System.Xml.Schema;
-using System.Reflection;
 
 namespace DrawingAppCG.ViewModels
 {
@@ -100,6 +95,55 @@ namespace DrawingAppCG.ViewModels
         public ClippingStage CurrentClippingStage { get; set; } = ClippingStage.None;
         public Polygon? ClipSubject { get; private set; } // Potentially AntiAliasedShape to discard Circle and Pill from clipping? Now polygon for sake of simplicity
         public Polygon? ClippingPolygon { get; set; }
+        private bool _useImageFill = false;
+        public bool UseImageFill
+        {
+            get => _useImageFill;
+            set
+            {
+                _useImageFill = value;
+                OnPropertyChanged(nameof(UseImageFill));
+            }
+        }
+        private FillMode _fillMode = FillMode.None;
+        public FillMode FillMode
+        {
+            get => _fillMode;
+            set
+            {
+                _fillMode = value;
+                OnPropertyChanged(nameof(FillMode));
+            }
+        }
+        private Color? _fillColor;
+        public Color? FillColor { 
+            get => _fillColor;
+            set
+            { 
+                _fillColor = value;
+                if (SelectedShape != null && SelectedShape is Polygon polygon)
+                {
+                    polygon.FillSource = FillSource;
+                    polygon.Draw(Bitmap);
+                }
+                OnPropertyChanged(nameof(FillColor));
+            } 
+        } //= Colors.Magenta;
+        private ImageFill? _imageFill;
+        public ImageFill? FillImage { 
+            get => _imageFill; 
+            set
+            {
+                _imageFill = value;
+                if (SelectedShape != null && SelectedShape is Polygon polygon)
+                {
+                    polygon.FillSource = FillSource;
+                    polygon.Draw(Bitmap);
+                }
+                OnPropertyChanged(nameof(FillImage));
+            }
+        }
+        public IFillSource? FillSource => FillMode == FillMode.None ? null : (FillMode == FillMode.Color ? FillColor?.AsFillSource() : FillImage);
         public MainWindowViewModel()
         {
             Bitmap = new(new PixelSize(_width, _height), new Vector(96, 96), PixelFormat.Bgra8888);
@@ -330,6 +374,20 @@ namespace DrawingAppCG.ViewModels
                 {
                     polygon.Clip = clip;
                 }
+                if (!string.IsNullOrEmpty(polygon.FillImagePath) && File.Exists(polygon.FillImagePath))
+                {
+                    var bmp = new Bitmap(polygon.FillImagePath);
+                    var wb = new WriteableBitmap(bmp.PixelSize, bmp.Dpi, bmp.Format);
+                    using (var fb = wb.Lock())
+                    {
+                        bmp.CopyPixels(new PixelRect(fb.Size), fb.Address, fb.Size.Height * fb.RowBytes, fb.RowBytes);
+                    }
+                    polygon.FillSource = new ImageFill(wb, polygon.FillImagePath);
+                }
+                else if (polygon.FillColor.HasValue)
+                {
+                    polygon.FillSource = polygon.FillColor.Value.AsFillSource();
+                }
             }
 
             ClearShapes();
@@ -349,5 +407,26 @@ namespace DrawingAppCG.ViewModels
             },
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         };
+        public async Task LoadFillImage(Window window)
+        {
+            var files = await window.StorageProvider.OpenFilePickerAsync(
+                new FilePickerOpenOptions
+                {
+                    Title = "Select Fill Image",
+                    FileTypeFilter = [new FilePickerFileType("Images") { Patterns = ["*.png", "*.jpg", "*.jpeg", "*.bmp"] }]
+                });
+
+            if (files.Count == 0) return;
+
+            var file = files[0];
+            await using var stream = await file.OpenReadAsync();
+            var bmp = new Bitmap(stream);
+            var wb = new WriteableBitmap(bmp.PixelSize, bmp.Dpi, bmp.Format);
+            using (var fb = wb.Lock())
+            {
+                bmp.CopyPixels(new PixelRect(fb.Size), fb.Address, fb.Size.Height * fb.RowBytes, fb.RowBytes);
+            }
+            FillImage = new ImageFill(wb, file.Path.LocalPath);
+        }
     }
 }

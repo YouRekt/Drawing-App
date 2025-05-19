@@ -3,6 +3,7 @@
         xmlns:vm="using:DrawingAppCG.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:conv="using:DrawingAppCG.Models.Converters"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
 		x:CompileBindings="True"
         x:Class="DrawingAppCG.Views.MainWindow"
@@ -21,6 +22,7 @@
 			<ScaleTransform/>
 			<TranslateTransform/>
 		</TransformGroup>
+		<conv:FillModeConverter x:Key="FillModeConverter"/>
 	</Window.Resources>
 
 	<DockPanel>
@@ -41,14 +43,30 @@
 			<MenuItem Header="Render Options">
 				<MenuItem Header="Antialiased" IsChecked="{Binding IsAntialiased,Mode=TwoWay}" ToggleType="CheckBox"/>
 			</MenuItem>
+			<MenuItem Header="Fill Mode">
+				<MenuItem Header="None" ToggleType="Radio" IsChecked="{Binding FillMode, Converter={StaticResource FillModeConverter}, ConverterParameter=None, Mode=TwoWay}" />
+				<MenuItem Header="Color" ToggleType="Radio" IsChecked="{Binding FillMode, Converter={StaticResource FillModeConverter}, ConverterParameter=Color, Mode=TwoWay}" />
+				<MenuItem Header="Image" ToggleType="Radio" IsChecked="{Binding FillMode, Converter={StaticResource FillModeConverter}, ConverterParameter=Image, Mode=TwoWay}" />
+			</MenuItem>
 			<MenuItem Header="Clear Shapes" Click="ClearShapes"/>
 			<MenuItem Header="Toggle AA for all Shapes" Click="ToggleAA"/>
 			<MenuItem Header="Delete Shape" IsEnabled="{Binding SelectedShape,UpdateSourceTrigger=PropertyChanged,Converter={x:Static ObjectConverters.IsNotNull}}" Command="{Binding DeleteSelectedShape}" HotKey="Delete"/>
 		</Menu>
 		<StackPanel DockPanel.Dock="Top" Orientation="Horizontal">
-			<TextBlock Text="{Binding SelectedThickness,StringFormat='Pen Thickness: {0} px'}" Width="140" Margin="12,0,5,0" VerticalAlignment="Center"/>
-			<Slider Width="100" Minimum="1" Maximum="15" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding SelectedThickness, Mode=TwoWay}" />
-			<ColorPicker Width="100" Margin="5,0,0,0" Color="{Binding SelectedColor,Mode=TwoWay}"/>
+			<StackPanel>
+				<TextBlock Text="{Binding SelectedThickness,StringFormat='Pen Thickness: {0} px'}" Width="140" Margin="12,0,5,0" VerticalAlignment="Center"/>
+				<Slider Width="100" Minimum="1" Maximum="15" TickFrequency="1" IsSnapToTickEnabled="True" Value="{Binding SelectedThickness, Mode=TwoWay}" />
+			</StackPanel>
+			<StackPanel Margin="0,0,20,0">
+				<TextBlock Text="Pen Color" Margin="12,0,5,0" VerticalAlignment="Center"/>
+				<ColorPicker Width="100" Margin="10,10,0,0" Color="{Binding SelectedColor,Mode=TwoWay}"/>
+			</StackPanel>
+			<StackPanel>
+				<TextBlock Text="Fill Mode" Margin="12,0,5,0" VerticalAlignment="Center"/>
+				<TextBlock Text="None" Margin="12,15,5,0" VerticalAlignment="Center" IsVisible="{Binding FillMode, Converter={StaticResource FillModeConverter},ConverterParameter=None }"/>
+				<ColorPicker IsVisible="{Binding FillMode, Converter={StaticResource FillModeConverter},ConverterParameter=Color }" Width="100" Margin="10,10,0,0" Color="{Binding FillColor,Mode=TwoWay}"/>
+				<Button IsVisible="{Binding FillMode, Converter={StaticResource FillModeConverter},ConverterParameter=Image }" Margin="10,10,0,0" Content="Choose Fill Image" Click="FillImage_Click"/>
+			</StackPanel>
 		</StackPanel>
 		<Panel>
 			<Border ClipToBounds="True">

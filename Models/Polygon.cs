@@ -1,10 +1,8 @@
-﻿using Avalonia;
-using Avalonia.Media;
+﻿using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using SkiaSharp;
 using System;
 using System.Collections.Generic;
-using System.Runtime.Serialization;
+using System.Linq;
 using System.Text.Json.Serialization;
 using static DrawingAppCG.Models.GeometryUtils;
 
@@ -20,6 +18,101 @@ namespace DrawingAppCG.Models
         public Guid? ClipId { get; set; }
         [JsonIgnore]
         public Polygon? Clip { get; set; }
+        public string? FillImagePath { get; set; }
+        [JsonConverter(typeof(ColorConverter))]
+        public Color? FillColor { get; set; }
+        private IFillSource? _fillSource;
+        [JsonIgnore]
+        public IFillSource? FillSource {
+            get => _fillSource; 
+            set
+            {
+                _fillSource = value;
+
+                switch (value)
+                {
+                    case ImageFill img:
+                        FillImagePath = img.Path;
+                        FillColor = null;
+                        break;
+                    case SolidColorFill clr:
+                        FillImagePath = null;
+                        FillColor = clr.FillColor;
+                        break;
+                    default:
+                        FillImagePath = null;
+                        FillColor = null;
+                        break;
+                }
+            }
+        }
+        public void Fill(WriteableBitmap bitmap)
+        {
+            if (FillSource == null) return;
+            var edgeTable = new Dictionary<int, List<AETEntry>>();
+
+            for (int i = 0; i < Points.Count; i++)
+            {
+                var p0 = Points[i];
+                var p1 = Points[(i + 1) % Points.Count];
+
+                if (p0.y == p1.y) continue;
+
+                int ymin = Math.Min(p0.y, p1.y);
+                int ymax = Math.Max(p0.y, p1.y);
+                int xmin = p0.y < p1.y ? p0.x : p1.x;
+                double invSlope = (double)(p1.x - p0.x) / (p1.y - p0.y);
+
+                if (!edgeTable.ContainsKey(ymin))
+                    edgeTable[ymin] = [];
+
+                edgeTable[ymin].Add(new AETEntry
+                {
+                    YMax = ymax,
+                    XMin = xmin,
+                    InvSlope = invSlope
+                });
+            }
+
+            if (edgeTable.Count == 0) return;
+
+            var scanlines = edgeTable.Keys.OrderBy(y => y).ToList();
+
+            int y = scanlines[0];
+            int maxY = Points.Max(p => p.y);
+
+            List<AETEntry> AET = [];
+
+            using (var fb = bitmap.Lock())
+            {
+                while (y <= maxY)
+                {
+                    if (edgeTable.TryGetValue(y, out var newEdges))
+                        AET.AddRange(newEdges);
+
+                    AET.RemoveAll(e => e.YMax == y);
+
+                    AET.Sort((a, b) => a.XMin.CompareTo(b.XMin));
+
+                    for (int i = 0; i + 1 < AET.Count; i += 2)
+                    {
+                        int xStart = (int)Math.Ceiling(AET[i].XMin);
+                        int xEnd = (int)Math.Floor(AET[i + 1].XMin);
+
+                        for (int x = xStart; x <= xEnd; x++)
+                        {
+                            var color = FillSource.GetColor(x, y);
+                            fb.SetPixel(x, y, color);
+                        }
+                    }
+
+                    foreach (var edge in AET)
+                        edge.XMin += edge.InvSlope;
+
+                    y++;
+                }
+            }
+        }
         private ((int x, int y) start, (int x, int y) end)? CyrusBeck((int x, int y) P0, (int x, int y) P1)
         {
             double tE = 0, tL = 1;
@@ -65,6 +158,7 @@ namespace DrawingAppCG.Models
         }
         public override void Draw(WriteableBitmap bitmap)
         {
+            Fill(bitmap);
             if (Clip != null)
             {
                 for (int i = 0; i < Points.Count; i++)

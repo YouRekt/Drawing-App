@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace DrawingAppCG.Models
+﻿namespace DrawingAppCG.Models
 {
     public enum Tool
     {
@@ -22,5 +16,11 @@ namespace DrawingAppCG.Models
         None,
         SelectedSubjectPolygon,
         DefinedClippingPolygon
+    }
+    public enum FillMode
+    {
+        None,
+        Color,
+        Image
     }
 }

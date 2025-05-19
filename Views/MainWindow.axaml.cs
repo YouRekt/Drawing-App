@@ -1,12 +1,8 @@
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
-using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
-using Avalonia.Platform;
 using DrawingAppCG.Models;
 using DrawingAppCG.ViewModels;
 using MsBox.Avalonia.Enums;
@@ -337,6 +333,7 @@ public partial class MainWindow : Window
                         Color = vm.SelectedColor,
                         IsAntialiased = vm.IsAntialiased,
                         Thickness = vm.SelectedThickness,
+                        FillSource = vm.FillSource,
                     };
                     vm.TempPolygon.Points.Add((x, y));
                     break;
@@ -404,6 +401,7 @@ public partial class MainWindow : Window
                         Color = vm.SelectedColor,
                         TopLeft = (x1, y1),
                         BottomRight = (x, y),
+                        FillSource = vm.FillSource,
                     });
                     startPoint = null;
                     break;
@@ -479,6 +477,12 @@ public partial class MainWindow : Window
         if (DataContext is MainWindowViewModel vm)
         {
             await vm.LoadShapes(this);
+        }
+    }
+    private async void FillImage_Click(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm) {
+            await vm.LoadFillImage(this);
         }
     }
 }
