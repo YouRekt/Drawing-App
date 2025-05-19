@@ -84,6 +84,16 @@ public partial class MainWindow : Window
             startPoint = null;
         }
     }
+    private void SelectBucketTool(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.SelectedTool = Tool.Bucket;
+            vm.CurrentClippingStage = ClippingStage.None;
+
+            startPoint = null;
+        }
+    }
     private void ClearShapes(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainWindowViewModel vm)
@@ -361,6 +371,13 @@ public partial class MainWindow : Window
                             return;
                     }
                     break;
+                case Tool.Bucket:
+                    if(vm.FillMode != FillMode.None)
+                    {
+                        vm.BucketPoint = (x, y);
+                        vm.FillRegion((x, y));
+                    }
+                    return;
             }
             startPoint = (x, y);
         }

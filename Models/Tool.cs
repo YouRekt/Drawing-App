@@ -9,7 +9,8 @@
         Polygon,
         Pill,
         Move,
-        Clip
+        Clip,
+        Bucket,
     }
     public enum ClippingStage
     {

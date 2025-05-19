@@ -39,6 +39,7 @@
 				<MenuItem Header="Pill" Click="SelectPillTool" />
 				<MenuItem Header="Move" Click="SelectMoveTool" />
 				<MenuItem Header="Clip" Click="SelectClipTool" />
+				<MenuItem Header="Bucket" Click="SelectBucketTool" />
 			</MenuItem>
 			<MenuItem Header="Render Options">
 				<MenuItem Header="Antialiased" IsChecked="{Binding IsAntialiased,Mode=TwoWay}" ToggleType="CheckBox"/>

@@ -13,6 +13,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using static DrawingAppCG.Models.FillRegion;
 
 namespace DrawingAppCG.ViewModels
 {
@@ -95,16 +96,6 @@ namespace DrawingAppCG.ViewModels
         public ClippingStage CurrentClippingStage { get; set; } = ClippingStage.None;
         public Polygon? ClipSubject { get; private set; } // Potentially AntiAliasedShape to discard Circle and Pill from clipping? Now polygon for sake of simplicity
         public Polygon? ClippingPolygon { get; set; }
-        private bool _useImageFill = false;
-        public bool UseImageFill
-        {
-            get => _useImageFill;
-            set
-            {
-                _useImageFill = value;
-                OnPropertyChanged(nameof(UseImageFill));
-            }
-        }
         private FillMode _fillMode = FillMode.None;
         public FillMode FillMode
         {
@@ -144,6 +135,7 @@ namespace DrawingAppCG.ViewModels
             }
         }
         public IFillSource? FillSource => FillMode == FillMode.None ? null : (FillMode == FillMode.Color ? FillColor?.AsFillSource() : FillImage);
+        public (int x, int y)? BucketPoint { get; set; }
         public MainWindowViewModel()
         {
             Bitmap = new(new PixelSize(_width, _height), new Vector(96, 96), PixelFormat.Bgra8888);
@@ -176,6 +168,8 @@ namespace DrawingAppCG.ViewModels
 
             foreach (var shape in Shapes)
                 shape.Draw(Bitmap);
+            if (BucketPoint.HasValue)
+                FillRegion(BucketPoint.Value);
 
             OnPropertyChanged(nameof(Bitmap));
         }
@@ -188,6 +182,7 @@ namespace DrawingAppCG.ViewModels
         public void ClearShapes()
         {
             Shapes.Clear();
+            BucketPoint = null;
             RedrawAll();
         }
         public void SelectShapeAt(int x, int y, bool isShiftDown)
@@ -427,6 +422,11 @@ namespace DrawingAppCG.ViewModels
                 bmp.CopyPixels(new PixelRect(fb.Size), fb.Address, fb.Size.Height * fb.RowBytes, fb.RowBytes);
             }
             FillImage = new ImageFill(wb, file.Path.LocalPath);
+        }
+        public void FillRegion((int x, int y) seed)
+        {
+            if(FillSource != null)
+                SmithScanline(Bitmap, seed, FillSource);
         }
     }
 }
