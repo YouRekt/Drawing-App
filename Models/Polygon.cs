@@ -151,9 +151,10 @@ namespace DrawingAppCG.Models
 
             return (start, end);
 
-            static (double x, double y) CalculateNormal((int x, int y) p0, (int x, int y) p1)
+            (double x, double y) CalculateNormal((int x, int y) p0, (int x, int y) p1)
             {
-                return (-(p1.y - p0.y), p1.x - p0.x);
+                var dir = GetWindingDirection(Clip!.Points);
+                return (-dir * (p1.y - p0.y), dir * (p1.x - p0.x));
             }
         }
         public override void Draw(WriteableBitmap bitmap)

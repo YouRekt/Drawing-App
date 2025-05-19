@@ -59,5 +59,17 @@ namespace DrawingAppCG.Models
             // total turn should be ±2π
             return Math.Abs(Math.Round(angleSum / (Math.PI * 2))) == 1;
         }
+        public static int GetWindingDirection(List<(int x, int y)> points)
+        {
+            int area = 0;
+            for (int i = 0; i < points.Count; i++)
+            {
+                var (x0, y0) = points[i];
+                var (x1, y1) = points[(i + 1) % points.Count];
+                area += (x1 - x0) * (y1 + y0);
+            }
+
+            return area < 0 ? -1 : 1; // CCW = -1, CW = 1
+        }
     }
 }
