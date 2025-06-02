@@ -11,6 +11,7 @@
         Move,
         Clip,
         Bucket,
+        Cube
     }
     public enum ClippingStage
     {

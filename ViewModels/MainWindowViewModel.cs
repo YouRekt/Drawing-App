@@ -136,6 +136,66 @@ namespace DrawingAppCG.ViewModels
         }
         public IFillSource? FillSource => FillMode == FillMode.None ? null : (FillMode == FillMode.Color ? FillColor?.AsFillSource() : FillImage);
         public (int x, int y)? BucketPoint { get; set; }
+        private float _alpha = 0.0f;
+        public float Alpha
+        {
+            get => _alpha;
+            set
+            {
+                _alpha = value;
+                if (SelectedShape != null && SelectedShape is Cube cube)
+                {
+                    cube.Alpha = value;
+                    cube.Draw(Bitmap);
+                }
+                OnPropertyChanged(nameof(Alpha));
+            }
+        }
+        private float _beta = 0.0f;
+        public float Beta
+        {
+            get => _beta;
+            set
+            {
+                _beta = value;
+                if (SelectedShape != null && SelectedShape is Cube cube)
+                {
+                    cube.Beta = value;
+                    cube.Draw(Bitmap);
+                }
+                OnPropertyChanged(nameof(Beta));
+            }
+        }
+        private int _distance = 400;
+        public int Distance
+        {
+            get => _distance;
+            set
+            {
+                _distance = value;
+                if (SelectedShape != null && SelectedShape is Cube cube)
+                {
+                    cube.Distance = value;
+                    cube.Draw(Bitmap);
+                }
+                OnPropertyChanged(nameof(Distance));
+            }
+        }
+        private int _size = 100;
+        public int Size
+        {
+            get => _size;
+            set
+            {
+                _size = value;
+                if (SelectedShape != null && SelectedShape is Cube cube)
+                {
+                    cube.Size = value;
+                    cube.Draw(Bitmap);
+                }
+                OnPropertyChanged(nameof(Size));
+            }
+        }
         public MainWindowViewModel()
         {
             Bitmap = new(new PixelSize(_width, _height), new Vector(96, 96), PixelFormat.Bgra8888);
