@@ -40,6 +40,7 @@
 				<MenuItem Header="Move" Click="SelectMoveTool" />
 				<MenuItem Header="Clip" Click="SelectClipTool" />
 				<MenuItem Header="Bucket" Click="SelectBucketTool" />
+				<MenuItem Header="Cube" Click="SelectCubeTool" />
 			</MenuItem>
 			<MenuItem Header="Render Options">
 				<MenuItem Header="Antialiased" IsChecked="{Binding IsAntialiased,Mode=TwoWay}" ToggleType="CheckBox"/>
@@ -67,6 +68,30 @@
 				<TextBlock Text="None" Margin="12,15,5,0" VerticalAlignment="Center" IsVisible="{Binding FillMode, Converter={StaticResource FillModeConverter},ConverterParameter=None }"/>
 				<ColorPicker IsVisible="{Binding FillMode, Converter={StaticResource FillModeConverter},ConverterParameter=Color }" Width="100" Margin="10,10,0,0" Color="{Binding FillColor,Mode=TwoWay}"/>
 				<Button IsVisible="{Binding FillMode, Converter={StaticResource FillModeConverter},ConverterParameter=Image }" Margin="10,10,0,0" Content="Choose Fill Image" Click="FillImage_Click"/>
+			</StackPanel>
+			<StackPanel Spacing="6" Margin="10" Orientation="Horizontal">
+				<StackPanel>
+					<TextBlock Text="Distance"/>
+					<Slider Minimum="100" Maximum="1000" Value="{Binding Distance,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" TickFrequency="10" IsSnapToTickEnabled="True"/>
+
+				</StackPanel>
+
+				<StackPanel>
+					<TextBlock Text="Size"/>
+					<Slider Minimum="10" Maximum="300" Value="{Binding Size,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" TickFrequency="10" IsSnapToTickEnabled="True"/>
+
+				</StackPanel>
+				<StackPanel>
+					<TextBlock Text="Alpha (X rotation)"/>
+					<Slider Minimum="-3.14" Maximum="3.14" Value="{Binding Alpha,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" TickFrequency="0.1"/>
+
+				</StackPanel>
+				<StackPanel>
+					<TextBlock Text="Beta (Y rotation)"/>
+					<Slider Minimum="-3.14" Maximum="3.14" Value="{Binding Beta,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" TickFrequency="0.1"/>
+
+				</StackPanel>
+
 			</StackPanel>
 		</StackPanel>
 		<Panel>

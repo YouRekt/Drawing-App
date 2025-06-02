@@ -94,6 +94,16 @@ public partial class MainWindow : Window
             startPoint = null;
         }
     }
+    private void SelectCubeTool(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.SelectedTool = Tool.Cube;
+            vm.CurrentClippingStage = ClippingStage.None;
+
+            startPoint = null;
+        }
+    }
     private void ClearShapes(object? sender, RoutedEventArgs e)
     {
         if (DataContext is MainWindowViewModel vm)
@@ -377,6 +387,17 @@ public partial class MainWindow : Window
                         vm.BucketPoint = (x, y);
                         vm.FillRegion((x, y));
                     }
+                    return;
+                case Tool.Cube:
+                    vm.AddShape(new Cube
+                    {
+                        Center = (x, y),
+                        Size = vm.Size,
+                        Alpha = vm.Alpha,
+                        Beta = vm.Beta,
+                        Distance = vm.Distance,
+                    });
+                    vm.RedrawAll();
                     return;
             }
             startPoint = (x, y);
